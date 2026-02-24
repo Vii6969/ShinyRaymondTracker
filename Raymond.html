@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rayquaza Shiny Hunt Tracker</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: radial-gradient(circle at top, #003b2f, #000 70%);
+      font-family: "Courier New", monospace;
+      color: #39ff14;
+      padding-top: 20px;
+    }
+
+    .frame {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 4px double #39ff14;
+      box-shadow: 0 0 25px rgba(57, 255, 20, 0.7);
+      width: 90%;
+      max-width: 400px;
+      border-radius: 15px;
+    }
+
+    .art img {
+      width: 100%;
+      max-width: 300px;
+      image-rendering: pixelated;
+      filter: drop-shadow(0 0 18px #39ff14);
+    }
+
+    .panel {
+      text-align: center;
+      width: 100%;
+      padding: 15px;
+      background:
+        linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
+        url('https://upload.wikimedia.org/wikipedia/en/7/7d/Pokemon_Emerald_Japanese_Boxart.png');
+      background-size: cover;
+      background-position: center;
+      border: 1px solid rgba(57,255,20,0.4);
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.03),
+        rgba(255,255,255,0.03) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      border-radius: 10px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: 1.5rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+
+    .count {
+      font-size: 4rem;
+      font-weight: bold;
+      margin: 10px 0;
+      text-shadow: 0 0 12px rgba(57, 255, 20, 0.9);
+      position: relative;
+      z-index: 1;
+    }
+
+    .count.flash {
+      animation: flicker 0.15s steps(2, end) 1;
+    }
+
+    @keyframes flicker {
+      0% { opacity: 1; }
+      50% { opacity: 0.4; }
+      100% { opacity: 1; }
+    }
+
+    .sparkle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120%;
+      height: 120%;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0);
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(57,255,20,0.4) 0%, rgba(57,255,20,0) 70%);
+      animation: sparkleAnim 0.6s forwards;
+      z-index: 0;
+    }
+
+    @keyframes sparkleAnim {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+    }
+
+    .hint {
+      font-size: 1rem;
+      margin-bottom: 10px;
+    }
+
+    .tap {
+      width: 100%;
+      padding: 20px;
+      font-size: 1.5rem;
+      background: black;
+      border: 3px solid #39ff14;
+      color: #39ff14;
+      font-family: inherit;
+      cursor: pointer;
+      border-radius: 12px;
+    }
+
+    .tap:active {
+      background: #39ff14;
+      color: #000;
+    }
+
+    .footer {
+      margin-top: 10px;
+      font-size: 0.75rem;
+      opacity: 0.6;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="art">
+      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png" alt="Rayquaza" />
+    </div>
+
+    <div class="panel" id="panel">
+      <h1>Rayquaza Hunt Log</h1>
+      <div class="count" id="count">0</div>
+      <div class="hint">Press SPACE / ENTER or TAP BUTTON</div>
+      <button class="tap" id="tap">+1 Encounter</button>
+      <div class="footer">Counter auto-saves · stay strong</div>
+    </div>
+  </div>
+
+  <script>
+    const countEl = document.getElementById("count");
+    const tapBtn = document.getElementById("tap");
+    const panel = document.getElementById("panel");
+
+    let count = Number(localStorage.getItem("rayquazaCount")) || 0;
+    countEl.textContent = count;
+
+    function showSparkle() {
+      const sparkle = document.createElement('div');
+      sparkle.className = 'sparkle';
+      panel.appendChild(sparkle);
+      setTimeout(() => panel.removeChild(sparkle), 600);
+    }
+
+    function increment() {
+      count++;
+      countEl.textContent = count;
+      localStorage.setItem("rayquazaCount", count);
+      countEl.classList.remove("flash");
+      void countEl.offsetWidth; // retrigger animation
+      countEl.classList.add("flash");
+
+      if(count % 100 === 0) showSparkle(); // sparkle on every 100 encounters
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space" || e.code === "Enter") {
+        e.preventDefault();
+        increment();
+      }
+    });
+
+    tapBtn.addEventListener("click", increment);
+  </script>
+</body>
+</html>
