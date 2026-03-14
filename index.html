@@ -1,199 +1,3095 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Rayquaza Shiny Hunt Tracker</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      background: radial-gradient(circle at top, #003b2f, #000 70%);
-      font-family: "Courier New", monospace;
-      color: #39ff14;
-      padding-top: 20px;
-    }
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=1200, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>LYMA · Task List</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&amp;family=Orbitron:wght@400;600;800&amp;family=Share+Tech&amp;display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    .frame {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      padding: 20px;
-      background: rgba(0, 0, 0, 0.75);
-      border: 4px double #39ff14;
-      box-shadow: 0 0 25px rgba(57, 255, 20, 0.7);
-      width: 90%;
-      max-width: 400px;
-      border-radius: 15px;
-    }
+  :root {
+    --bg:           #0D0D0F;
+    --bg2:          #111116;
+    --surface:      #16161C;
+    --surface2:     #1C1C24;
+    --border:       #2A2A38;
+    --border-glow:  #4B3F72;
+    --text:         #C8C8D4;
+    --muted:        #5A5A72;
+    --green:        #43FF91;
+    --green-dim:    #1A4A30;
+    --green-glow:   rgba(67,255,145,0.15);
+    --purple:       #9B6DFF;
+    --purple-dim:   #2A1F4A;
+    --purple-glow:  rgba(155,109,255,0.15);
+    --red:          #FF4560;
+    --red-dim:      #3A1020;
+    --red-glow:     rgba(255,69,96,0.15);
+    --orange:       #FF8C42;
+    --orange-dim:   #3A2010;
+    --white-text:   #E8E8F0;
+  }
 
-    .art img {
-      width: 100%;
-      max-width: 300px;
-      image-rendering: pixelated;
-      filter: drop-shadow(0 0 18px #39ff14);
-    }
+  @keyframes scanline {
+    0%   { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
 
-    .panel {
-      text-align: center;
-      width: 100%;
-      padding: 15px;
-      background:
-        linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)),
-        url('https://upload.wikimedia.org/wikipedia/en/7/7d/Pokemon_Emerald_Japanese_Boxart.png');
-      background-size: cover;
-      background-position: center;
-      border: 1px solid rgba(57,255,20,0.4);
-      border-radius: 10px;
-      position: relative;
-      overflow: hidden;
-    }
+  @keyframes flicker {
+    0%, 97%, 100% { opacity: 1; }
+    98%           { opacity: 0.85; }
+    99%           { opacity: 0.95; }
+  }
 
-    .panel::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: repeating-linear-gradient(
-        to bottom,
-        rgba(255,255,255,0.03),
-        rgba(255,255,255,0.03) 1px,
-        transparent 1px,
-        transparent 3px
-      );
-      pointer-events: none;
-      mix-blend-mode: overlay;
-      border-radius: 10px;
-    }
+  @keyframes pulse-green {
+    0%, 100% { box-shadow: 0 0 4px rgba(67,255,145,0.4); }
+    50%       { box-shadow: 0 0 12px rgba(67,255,145,0.8); }
+  }
 
-    h1 {
-      margin: 0 0 10px;
-      font-size: 1.5rem;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-    }
+  @keyframes pulse-purple {
+    0%, 100% { box-shadow: 0 0 4px rgba(155,109,255,0.4); }
+    50%       { box-shadow: 0 0 12px rgba(155,109,255,0.8); }
+  }
 
-    .count {
-      font-size: 4rem;
-      font-weight: bold;
-      margin: 10px 0;
-      text-shadow: 0 0 12px rgba(57, 255, 20, 0.9);
-      position: relative;
-      z-index: 1;
-    }
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0; }
+  }
 
-    .count.flash {
-      animation: flicker 0.15s steps(2, end) 1;
-    }
+  body {
+    background: var(--bg);
+    font-family: 'Share Tech', monospace;
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+    animation: flicker 8s infinite;
+    position: relative;
+    overflow-x: hidden;
+  }
 
-    @keyframes flicker {
-      0% { opacity: 1; }
-      50% { opacity: 0.4; }
-      100% { opacity: 1; }
-    }
+  /* Scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 999;
+  }
 
-    .sparkle {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 120%;
-      height: 120%;
-      pointer-events: none;
-      transform: translate(-50%, -50%) scale(0);
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(57,255,20,0.4) 0%, rgba(57,255,20,0) 70%);
-      animation: sparkleAnim 0.6s forwards;
-      z-index: 0;
-    }
+  /* Moving scanline */
+  body::after {
+    content: '';
+    position: fixed;
+    left: 0; right: 0;
+    height: 120px;
+    background: linear-gradient(transparent, rgba(155,109,255,0.03), transparent);
+    animation: scanline 6s linear infinite;
+    pointer-events: none;
+    z-index: 998;
+  }
 
-    @keyframes sparkleAnim {
-      0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
-      100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
-    }
+  /* Corner decorations */
+  .corner-tl, .corner-tr, .corner-bl, .corner-br {
+    position: fixed;
+    width: 40px; height: 40px;
+    pointer-events: none;
+    z-index: 100;
+  }
+  .corner-tl { top: 16px; left: 16px; border-top: 1px solid var(--purple); border-left: 1px solid var(--purple); }
+  .corner-tr { top: 16px; right: 16px; border-top: 1px solid var(--purple); border-right: 1px solid var(--purple); }
+  .corner-bl { bottom: 16px; left: 16px; border-bottom: 1px solid var(--purple); border-left: 1px solid var(--purple); }
+  .corner-br { bottom: 16px; right: 16px; border-bottom: 1px solid var(--purple); border-right: 1px solid var(--purple); }
 
-    .hint {
-      font-size: 1rem;
-      margin-bottom: 10px;
-    }
+  header {
+    max-width: 760px;
+    margin: 0 auto 48px;
+    position: relative;
+  }
 
-    .tap {
-      width: 100%;
-      padding: 20px;
-      font-size: 1.5rem;
-      background: black;
-      border: 3px solid #39ff14;
-      color: #39ff14;
-      font-family: inherit;
-      cursor: pointer;
-      border-radius: 12px;
-    }
+  .header-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
 
-    .tap:active {
-      background: #39ff14;
-      color: #000;
-    }
+  .logo-block {}
 
-    .footer {
-      margin-top: 10px;
-      font-size: 0.75rem;
-      opacity: 0.6;
-    }
+  .logo-eyebrow {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--purple);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
 
-  </style>
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 4px;
+    color: var(--white-text);
+    text-transform: uppercase;
+    text-shadow: 0 0 20px rgba(155,109,255,0.6), 0 0 40px rgba(155,109,255,0.2);
+  }
+
+  .logo span { color: var(--green); text-shadow: 0 0 20px rgba(67,255,145,0.8); }
+
+  .header-meta {
+    text-align: right;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    line-height: 1.8;
+    letter-spacing: 1px;
+  }
+
+  .header-meta .live {
+    color: var(--green);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 1.2s ease infinite;
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  .header-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--purple), var(--green), transparent);
+    margin-top: 16px;
+    position: relative;
+  }
+
+  .header-divider::after {
+    content: '▶ NERV TASK MANAGEMENT SYSTEM ◀';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    background: var(--bg);
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
+  .board {
+    max-width: 760px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .section-label h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .section-label .count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 2px;
+    padding: 1px 7px;
+    border: 1px solid;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+
+  /* Section colours */
+  .overdue .section-label h2      { color: var(--red); }
+  .overdue .section-label .count  { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+  .overdue .section-label::after  { background: linear-gradient(90deg, var(--red), transparent); }
+
+  .todo .section-label h2         { color: var(--purple); }
+  .todo .section-label .count     { background: var(--purple-dim); color: var(--purple); border-color: var(--purple); }
+  .todo .section-label::after     { background: linear-gradient(90deg, var(--purple), transparent); }
+
+  .active .section-label h2       { color: var(--green); }
+  .active .section-label .count   { background: var(--green-dim); color: var(--green); border-color: var(--green); }
+  .active .section-label::after   { background: linear-gradient(90deg, var(--green), transparent); }
+
+  .done-section .section-label h2      { color: var(--muted); }
+  .done-section .section-label .count  { background: #1A1A22; color: var(--muted); border-color: var(--border); }
+  .done-section .section-label::after  { background: linear-gradient(90deg, var(--border), transparent); }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 14px 16px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+
+  /* Clipped corner decorators */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 12px;
+    width: 1px; height: 12px;
+    transform: rotate(45deg) translate(6px, -6px);
+    transform-origin: top right;
+  }
+
+  .card::after {
+    content: '';
+    position: absolute;
+    left: 3px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+  }
+
+  /* Per-section card styling */
+  .overdue .card { border-color: #3A1828; }
+  .overdue .card::after { background: var(--red); box-shadow: 0 0 6px var(--red); }
+  .overdue .card:hover { border-color: var(--red); background: #1A1018; box-shadow: 0 0 16px var(--red-glow); }
+
+  .todo .card::after { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+  .todo .card:hover { border-color: var(--purple); background: var(--surface2); box-shadow: 0 0 16px var(--purple-glow); }
+
+  .active .card { border-color: #1A3028; background: #121A16; }
+  .active .card::after { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-green 2s ease infinite; }
+  .active .card:hover { border-color: var(--green); box-shadow: 0 0 16px var(--green-glow); }
+
+  .blocked-card { border-color: var(--red-dim) !important; background: var(--red-dim) !important; }
+  .blocked-card::after { background: var(--red) !important; box-shadow: 0 0 6px var(--red) !important; animation: none !important; }
+  .blocked-card:hover { border-color: var(--red) !important; box-shadow: 0 0 16px var(--red-glow) !important; }
+
+
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .section-header h2 {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  .section-header .count {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 2px;
+    padding: 1px 7px;
+    border: 1px solid;
+  }
+
+  .section-header::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+  }
+
+  .section-toggle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border: 1px solid;
+    border-radius: 1px;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .section-body {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 0.3s ease;
+  }
+
+  .section-body.collapsed {
+    grid-template-rows: 0fr;
+  }
+
+  .section-body-inner {
+    overflow: hidden;
+  }
+
+  /* Always-on collapsible colours */
+  .always-on .section-header h2      { color: var(--purple); }
+  .always-on .section-header .count  { background: var(--purple-dim); color: var(--purple); border-color: var(--purple); }
+  .always-on .section-header::after  { background: linear-gradient(90deg, var(--purple), transparent); }
+  .always-on .section-toggle         { color: var(--purple); border-color: var(--border); background: transparent; }
+  .always-on .section-toggle:hover   { background: var(--purple-dim); }
+
+  /* Done collapsible colours */
+  .done-section .section-header h2      { color: var(--muted); }
+  .done-section .section-header .count  { background: #1A1A22; color: var(--muted); border-color: var(--border); }
+  .done-section .section-header::after  { background: linear-gradient(90deg, var(--border), transparent); }
+  .done-section .section-toggle         { color: var(--muted); border-color: var(--border); background: transparent; }
+  .done-section .section-toggle:hover   { background: #1A1A22; }
+
+  .always-on .card::after { background: var(--purple); box-shadow: 0 0 6px var(--purple); }
+  .always-on .card:hover { border-color: var(--purple); background: var(--surface2); box-shadow: 0 0 16px var(--purple-glow); }
+  .pill-recurring { background: var(--purple-dim); color: var(--purple); border-color: var(--purple); }
+  .done-section .card { opacity: 0.5; }
+  .done-section .card::after { background: var(--muted); box-shadow: none; }
+  .done-section .card:hover { opacity: 0.7; border-color: var(--muted); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .card-top-left { flex: 1; min-width: 0; }
+
+  .card-prefix {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 3px;
+  }
+
+  .card-title {
+    font-family: 'Share Tech', monospace;
+    font-size: 14px;
+    font-weight: 400;
+    line-height: 1.4;
+    color: var(--white-text);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .done-section .card-title {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+
+  .card-top-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .pill {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    border-radius: 1px;
+    padding: 3px 8px;
+    border: 1px solid;
+    white-space: nowrap;
+  }
+
+  .pill-overdue  { background: var(--red-dim); color: var(--red); border-color: var(--red); box-shadow: 0 0 6px var(--red-glow); }
+  .pill-due      { background: var(--purple-dim); color: var(--purple); border-color: var(--purple); }
+  .pill-blocked  { background: var(--red-dim); color: var(--red); border-color: var(--red); }
+  .pill-done     { background: #1A1A22; color: var(--muted); border-color: var(--border); }
+  .pill-active   { background: var(--green-dim); color: var(--green); border-color: var(--green); box-shadow: 0 0 6px var(--green-glow); }
+
+  .expand-icon {
+    width: 20px; height: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: border-color 0.15s, background 0.15s;
+    clip-path: polygon(0 0, calc(100% - 4px) 0, 100% 4px, 100% 100%, 4px 100%, 0 calc(100% - 4px));
+  }
+
+  .expand-icon svg {
+    width: 8px; height: 8px;
+    color: var(--muted);
+    transition: transform 0.25s ease, color 0.15s;
+  }
+
+  .card.open .expand-icon { border-color: var(--green); background: var(--green-dim); }
+  .card.open .expand-icon svg { color: var(--green); transform: rotate(180deg); }
+
+  /* Expand */
+  .card-expand {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.28s ease;
+  }
+  .card.open .card-expand { grid-template-rows: 1fr; }
+  .card-expand-inner { overflow: hidden; }
+
+  .card-details {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
+  .detail-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+
+  .detail-row:last-child { margin-bottom: 0; }
+
+  .detail-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--purple);
+    min-width: 68px;
+    padding-top: 2px;
+  }
+
+  .detail-value { color: var(--text); font-size: 12px; font-family: 'Share Tech', monospace; }
+
+  .links { display: flex; flex-wrap: wrap; gap: 6px; }
+
+  .link-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    color: var(--green);
+    background: var(--green-dim);
+    border: 1px solid #2A4A38;
+    border-radius: 1px;
+    padding: 4px 10px;
+    text-decoration: none;
+    transition: border-color 0.12s, box-shadow 0.12s;
+    clip-path: polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 6px 100%, 0 calc(100% - 6px));
+  }
+
+  .link-chip:hover { border-color: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+  .link-chip svg { width: 10px; height: 10px; opacity: 0.7; }
+
+  .subtask-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .subtask-track {
+    flex: 1;
+    height: 3px;
+    background: var(--green-dim);
+    border: 1px solid #2A4A38;
+  }
+
+  .subtask-fill {
+    height: 100%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+  }
+
+  .subtask-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px;
+    color: var(--green);
+    letter-spacing: 1px;
+  }
+
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .nerv-logo {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    filter: drop-shadow(0 0 8px rgba(155,109,255,0.6));
+  }
+
+  .stat-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .stat-label {
+    color: var(--purple);
+    font-size: 9px;
+    letter-spacing: 1px;
+    min-width: 32px;
+  }
+
+  .sync-ok {
+    color: var(--green);
+    text-shadow: 0 0 6px rgba(67,255,145,0.6);
+  }
+
+  .blink-text {
+    color: var(--green);
+    text-shadow: 0 0 6px rgba(67,255,145,0.6);
+    font-family: 'Share Tech Mono', monospace;
+  }
+
+  .subtask-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .subtask-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+  }
+  .subtask-tick {
+    font-size: 11px;
+    width: 14px;
+    text-align: center;
+    color: var(--green);
+  }
+  .subtask-tick.pending {
+    color: var(--muted);
+  }
+  .subtask-name {
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  .done-name {
+    text-decoration: line-through;
+    color: var(--muted);
+  }
+  .done-subtask .subtask-tick {
+    color: var(--green);
+    text-shadow: 0 0 6px rgba(67,255,145,0.6);
+  }
+
+  /* ── PASSWORD SCREEN ── */
+  #pw-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 20px;
+    animation: flicker 8s infinite;
+  }
+  #pw-screen::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);
+    pointer-events: none;
+  }
+  #pw-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--purple);
+    text-transform: uppercase;
+  }
+  #pw-logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 28px; font-weight: 800;
+    color: var(--white-text);
+  }
+  #pw-logo span { color: var(--green); }
+  #pw-wrap {
+    display: flex; gap: 0;
+    border: 1px solid var(--border-glow);
+    border-radius: 3px; overflow: hidden;
+  }
+  #pw-input {
+    background: var(--surface);
+    border: none; outline: none;
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 16px; letter-spacing: 4px;
+    padding: 10px 16px; width: 160px;
+    text-align: center;
+  }
+  #pw-input::placeholder { color: var(--muted); letter-spacing: 2px; font-size: 12px; }
+  #pw-btn {
+    background: var(--purple-dim);
+    border: none; cursor: pointer;
+    color: var(--purple);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    padding: 10px 16px;
+    transition: background 0.2s;
+  }
+  #pw-btn:hover { background: var(--purple); color: var(--bg); }
+  #pw-error {
+    color: var(--red); font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    opacity: 0; transition: opacity 0.3s;
+    min-height: 16px;
+  }
+  #pw-error.show { opacity: 1; }
+
+  /* ── ADD TASK MODAL ── */
+  #modal-overlay {
+    position: fixed; inset: 0; z-index: 8888;
+    background: rgba(0,0,0,0.75);
+    display: none; align-items: center; justify-content: center;
+  }
+  #modal-overlay.open { display: flex; }
+  #modal {
+    background: var(--surface);
+    border: 1px solid var(--border-glow);
+    border-radius: 4px;
+    padding: 28px 32px;
+    width: 520px; max-width: 95vw;
+    display: flex; flex-direction: column; gap: 16px;
+    position: relative;
+  }
+  #modal h3 {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px; letter-spacing: 3px;
+    color: var(--purple); text-transform: uppercase;
+    border-bottom: 1px solid var(--border); padding-bottom: 10px;
+  }
+  .modal-row { display: flex; flex-direction: column; gap: 6px; }
+  .modal-row label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    color: var(--muted); text-transform: uppercase;
+  }
+  .modal-row input, .modal-row select, .modal-row textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech', monospace;
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.2s;
+    -webkit-appearance: none;
+  }
+  .modal-row input:focus, .modal-row select:focus, .modal-row textarea:focus {
+    border-color: var(--purple);
+  }
+  .modal-row textarea { resize: vertical; min-height: 70px; }
+  .modal-row select option { background: var(--surface2); }
+  .modal-btns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+  .modal-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    padding: 8px 20px; border: none; border-radius: 3px;
+    cursor: pointer; text-transform: uppercase; transition: all 0.2s;
+  }
+  .modal-btn.cancel { background: var(--surface2); color: var(--muted); }
+  .modal-btn.cancel:hover { color: var(--text); }
+  .modal-btn.confirm { background: var(--purple-dim); color: var(--purple); border: 1px solid var(--purple); }
+  .modal-btn.confirm:hover { background: var(--purple); color: var(--bg); }
+
+  /* ── FAB ADD BUTTON ── */
+  #fab {
+    position: fixed; bottom: 32px; right: 32px; z-index: 1000;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--purple-dim);
+    border: 1px solid var(--purple);
+    color: var(--purple);
+    font-size: 26px; line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 0 16px var(--purple-glow);
+    transition: all 0.2s;
+    font-family: monospace;
+  }
+  #fab:hover { background: var(--purple); color: var(--bg); box-shadow: 0 0 24px var(--purple); }
+
+  /* ── PDF VIEWER MODAL ── */
+  #pdf-overlay {
+    position: fixed; inset: 0; z-index: 8000;
+    background: rgba(0,0,0,0.85);
+    display: none; align-items: center; justify-content: center;
+  }
+  #pdf-overlay.open { display: flex; }
+  #pdf-container {
+    background: var(--surface);
+    border: 1px solid var(--border-glow);
+    border-radius: 4px;
+    width: 90vw; height: 88vh;
+    display: flex; flex-direction: column;
+    overflow: hidden; position: relative;
+  }
+  #pdf-toolbar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 1px;
+    color: var(--muted);
+  }
+  #pdf-toolbar span { flex: 1; color: var(--purple); }
+  #pdf-close {
+    background: var(--red-dim); border: 1px solid var(--red);
+    color: var(--red); font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 2px;
+    padding: 4px 12px; border-radius: 2px; cursor: pointer;
+  }
+  #pdf-close:hover { background: var(--red); color: var(--bg); }
+  #pdf-frame {
+    flex: 1; border: none; width: 100%; height: 100%;
+    background: #fff;
+  }
+  .pdf-link-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--red-dim); border: 1px solid var(--red);
+    color: var(--red); border-radius: 3px;
+    padding: 4px 10px; font-size: 10px; letter-spacing: 1px;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer; text-decoration: none;
+    transition: all 0.15s;
+  }
+  .pdf-link-chip:hover { background: var(--red); color: var(--bg); }
+
+
+  /* ── STATUS CONTROLS ── */
+  .status-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-top: 14px; padding-top: 12px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .status-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--purple);
+    min-width: 68px; padding-top: 2px;
+  }
+  .status-select {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+    padding: 5px 10px;
+    outline: none; cursor: pointer;
+    -webkit-appearance: none;
+    transition: border-color 0.2s;
+  }
+  .status-select:focus { border-color: var(--purple); }
+  .status-select option { background: var(--surface2); }
+
+  .blocked-reason-row {
+    display: none; width: 100%;
+    gap: 12px; align-items: flex-start;
+    margin-top: 8px;
+  }
+  .blocked-reason-row.visible { display: flex; }
+  .blocked-reason-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--red);
+    border-radius: 3px;
+    color: var(--text);
+    font-family: 'Share Tech', monospace;
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none; resize: vertical; min-height: 44px;
+    transition: border-color 0.2s;
+  }
+  .blocked-reason-input:focus { border-color: var(--red); box-shadow: 0 0 6px var(--red-glow); }
+  .blocked-reason-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--red);
+    min-width: 68px; padding-top: 8px;
+  }
+
+
+  /* ── iOS / SAFARI FIXES ── */
+  * { -webkit-tap-highlight-color: transparent; }
+  input, select, textarea, button {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 3px;
+    font-size: 16px; /* prevent iOS zoom on focus */
+  }
+  select { background-image: none; }
+  body { -webkit-overflow-scrolling: touch; }
+  .card-expand {
+    -webkit-transition: grid-template-rows 0.28s ease;
+  }
+  /* Fix fixed positioning on iOS */
+  #pw-screen, #modal-overlay, #pdf-overlay, #fab {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+
+
+  /* ── EDIT BUTTON ── */
+  .edit-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 9px; letter-spacing: 1.5px;
+    text-transform: uppercase;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--muted);
+    padding: 4px 10px; cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 12px;
+    -webkit-appearance: none;
+  }
+  .edit-btn:hover { border-color: var(--purple); color: var(--purple); background: var(--purple-dim); }
+
+  /* ── MODAL SCROLLABLE on small screens ── */
+  #modal {
+    max-height: 90vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+
+  #pw-lockout-msg {
+    color: var(--red);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px; letter-spacing: 2px;
+    min-height: 16px; text-align: center;
+  }
+  #pw-attempts {
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 10px; letter-spacing: 1px;
+  }
+  #pw-input:disabled, #pw-btn:disabled {
+    opacity: 0.3; cursor: not-allowed;
+  }
+
+</style>
 </head>
 <body>
-  <div class="frame">
-    <div class="art">
-      <img src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png" alt="Rayquaza" />
-    </div>
 
-    <div class="panel" id="panel">
-      <h1>Rayquaza Hunt Log</h1>
-      <div class="count" id="count">0</div>
-      <div class="hint">Press SPACE / ENTER or TAP BUTTON</div>
-      <button class="tap" id="tap">+1 Encounter</button>
-      <div class="footer">Counter auto-saves · stay strong</div>
+<div id="pw-screen">
+  <div id="pw-title">// NERV PERSONAL OPERATIONS //</div>
+  <div id="pw-logo">ACTION <span>LIST</span></div>
+  <div id="pw-wrap">
+    <input id="pw-input" maxlength="20" placeholder="ENTER CODE" type="password" autocomplete="off"/>
+    <button id="pw-btn" onclick="checkPw()">ACCESS</button>
+  </div>
+  <div id="pw-error">⚠ ACCESS DENIED</div>
+  <div id="pw-lockout-msg"></div>
+  <div id="pw-attempts"></div>
+</div>
+
+<div id="modal-overlay">
+  <div id="modal">
+    <h3 id="modal-heading">// Add New Task</h3>
+    <div class="modal-row">
+      <label>Task Title</label>
+      <input id="m-title" placeholder="e.g. Brief Yasha on NYC ads" type="text"/>
+    </div>
+    <div class="modal-row">
+      <label>Category</label>
+      <select id="m-cat">
+        <option value="CREATIVE">CREATIVE</option>
+        <option value="PAID MEDIA">PAID MEDIA</option>
+        <option value="ANALYTICS">ANALYTICS</option>
+        <option value="OPERATIONS">OPERATIONS</option>
+        <option value="RESEARCH">RESEARCH</option>
+        <option value="CONTENT">CONTENT</option>
+        <option value="COMPLIANCE">COMPLIANCE</option>
+      </select>
+    </div>
+    <div class="modal-row">
+      <label>Status</label>
+      <select id="m-section" onchange="modalStatusChange(this)">
+        <option value="todo">To Do</option>
+        <option value="active">Active</option>
+        <option value="blocked">Blocked</option>
+      </select>
+    </div>
+    <div class="modal-row" id="m-blocked-row" style="display:none;">
+      <label>Blocked By</label>
+      <textarea id="m-blockedreason" placeholder="What is blocking this task?"></textarea>
+    </div>
+    <div class="modal-row">
+      <label>Brief (optional)</label>
+      <textarea id="m-brief" placeholder="Describe what needs to be done..."></textarea>
+    </div>
+    <div class="modal-row">
+      <label>Link URL (optional)</label>
+      <input id="m-link" placeholder="https://..." type="url"/>
+    </div>
+    <div class="modal-row">
+      <label>Link Label (optional)</label>
+      <input id="m-linklabel" placeholder="e.g. FIGMA FILE" type="text"/>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm-btn" onclick="submitModal()">Add Task</button>
     </div>
   </div>
+</div>
 
-  <script>
-    const countEl = document.getElementById("count");
-    const tapBtn = document.getElementById("tap");
-    const panel = document.getElementById("panel");
+<div id="pdf-overlay">
+  <div id="pdf-container">
+    <div id="pdf-toolbar">
+      <span id="pdf-title">DOCUMENT VIEWER</span>
+      <button id="pdf-close" onclick="closePdf()">✕ CLOSE</button>
+    </div>
+    <iframe id="pdf-frame" src=""></iframe>
+  </div>
+</div>
 
-    let count = Number(localStorage.getItem("rayquazaCount")) || 0;
-    countEl.textContent = count;
+<button id="fab" onclick="openModal()" title="Add Task">+</button>
 
-    function showSparkle() {
-      const sparkle = document.createElement('div');
-      sparkle.className = 'sparkle';
-      panel.appendChild(sparkle);
-      setTimeout(() => panel.removeChild(sparkle), 600);
-    }
+<div class="corner-tl"></div>
+<div class="corner-tr"></div>
+<div class="corner-bl"></div>
+<div class="corner-br"></div>
+<header>
+<div class="header-top">
+<div class="logo-block">
+<div class="logo-eyebrow">// NERV PERSONAL OPERATIONS //</div>
+<div class="logo-row">
+<svg class="nerv-logo" viewbox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<!-- Outer hexagon -->
+<polygon fill="none" opacity="0.8" points="40,4 72,22 72,58 40,76 8,58 8,22" stroke="#9B6DFF" stroke-width="1.5"></polygon>
+<!-- Inner hexagon -->
+<polygon fill="none" opacity="0.5" points="40,14 62,27 62,53 40,66 18,53 18,27" stroke="#9B6DFF" stroke-width="0.8"></polygon>
+<!-- Cross lines -->
+<line opacity="0.3" stroke="#9B6DFF" stroke-width="0.5" x1="40" x2="40" y1="4" y2="76"></line>
+<line opacity="0.3" stroke="#9B6DFF" stroke-width="0.5" x1="8" x2="72" y1="22" y2="58"></line>
+<line opacity="0.3" stroke="#9B6DFF" stroke-width="0.5" x1="72" x2="8" y1="22" y2="58"></line>
+<!-- N E R V letters -->
+<text fill="#9B6DFF" font-family="monospace" font-size="7" letter-spacing="1" x="28" y="36">NE</text>
+<text fill="#9B6DFF" font-family="monospace" font-size="7" letter-spacing="1" x="28" y="50">RV</text>
+<!-- Center dot -->
+<circle cx="40" cy="40" fill="#43FF91" opacity="0.9" r="2"></circle>
+<!-- Rotating ring -->
+<circle cx="40" cy="40" fill="none" opacity="0.4" r="18" stroke="#43FF91" stroke-dasharray="4 8" stroke-width="0.5">
+<animatetransform attributename="transform" dur="12s" from="0 40 40" repeatcount="indefinite" to="360 40 40" type="rotate"></animatetransform>
+</circle>
+</svg>
+<div class="logo">ACTION <span>LIST</span></div>
+</div>
+</div>
+<div class="header-meta">
+<div class="live"><div class="live-dot"></div> SYSTEM ONLINE</div>
+<div class="stat-row"><span class="stat-label">DATE</span> <span id="live-date">20.02.2026</span></div>
+<div class="stat-row"><span class="stat-label">TIME</span> <span class="blink-text" id="live-time">--:--:--</span></div>
+<div class="stat-row"><span class="stat-label">BASE</span> LONDON-01</div>
+<div class="stat-row"><span class="stat-label">OPRT</span> B.WEBLEY</div>
+<div class="stat-row"><span class="stat-label">SYNC</span> <span class="sync-ok">✓ NOMINAL</span></div>
+</div>
+</div>
+<div class="header-divider"></div>
+</header>
+<div class="board">
+<!-- TO DO -->
+<div class="todo">
+<div class="section-label"><h2>// To Do</h2><span class="count">07</span></div>
+<div class="cards"><div class="card blocked-card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-001 // COMPLIANCE</div>
+<div class="card-title">Compliance for Supplement Comparison</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-blocked">■ BLOCKED</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Blocked by</div>
+<div class="detail-value">Originally referenced websites no longer have the same stock — need to find new sources of comparison</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value">
+<div class="links">
+<a class="link-chip" href="https://drive.google.com/drive/folders/1n2MUADiHQFYTbx7VII5dNJdqGFCKbyYg?usp=drive_link" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    COMPLIANCE FOLDER
+                  </a>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-002 // CREATIVE</div>
+<div class="card-title">Jowls Video Update</div>
+</div>
+<div class="card-top-right">
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Ref</div>
+<div class="detail-value">Notion ID-927</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Change video of her using the laser to an older model</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-003 // CREATIVE</div>
+<div class="card-title">Spekk Brief Template</div>
+</div>
+<div class="card-top-right">
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Create a reusable template for Spekk briefs going forward</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-004 // RESEARCH</div>
+<div class="card-title">Powder Competitor List</div>
+</div>
+<div class="card-top-right">
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Review competitor ads to inform the powder launch creative strategy</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value">
+<div class="links">
+<a class="link-chip" href="https://drive.google.com/drive/folders/1h9h9yuo_7_2Mum1wrlQeOpax4Wy9RM2g?usp=drive_link" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    SCREENSHOTS
+                  </a>
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1TelMNSWTkrRYyglnncPwnvHR_PrO2kTN7zG1svt-5n4/edit?gid=0#gid=0" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                    SPREADSHEET 01
+                  </a>
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1ksvSGGlC96vZnhKHQvybrGNIRx0N65JeAKtrbTYVM6w/edit?gid=1150316017#gid=1150316017" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                    SPREADSHEET 02
+                  </a>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-005 // DEVELOPMENT</div>
+<div class="card-title">Perf Marketing Courses</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-due">DUE 28 FEB</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Research Performance Marketing courses to propose to manager — supports professional development</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-019 // OPERATIONS</div>
+<div class="card-title">Organise Towel Cupboard / Spa Room</div>
+</div>
+<div class="card-top-right">
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Reorganise the spa room towel cupboard and in the room ahead of owning the spa room setup going forwards</div>
+</div>
+</div>
+</div></div>
+</div></div>
+</div>
+<!-- ACTIVE -->
+<div class="active">
+<div class="section-label"><h2>// Active</h2><span class="count">03</span></div>
+<div class="cards"><div class="card blocked-card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-007 // PAID MEDIA</div>
+<div class="card-title">Perlax Lead Gen Ads</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-blocked">■ BLOCKED</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Blocked by</div>
+<div class="detail-value">Chloe briefing email section to be added to landing page — check to confirm when it's been added</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Add landing page to ads on Notion</div>
+</div></div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-028 // CONTENT</div>
+<div class="card-title">Brief Yasha on Cropping Asprey Clips</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-active">● ACTIVE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details"><div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Crop Asprey clips to 2-5 mins for YouTube SEO optimised videos</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://claude.ai/chat/1f2cf37d-a3fb-4baf-bc31-e73089d6007e" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+CHAT REFERENCE
+</a>
+</div></div>
+</div></div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-039 // CREATIVE</div>
+<div class="card-title">Brief Russ &amp; Yasha on Scarring Alternative Creatives</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-active">● ACTIVE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Brief Russ and Yasha on alternative creatives riffing off ID-1009 — new hooks and angles across 3 scarring videos, 4 laxity videos, and 4 pigmentation videos, each with varied briefs.</div>
+</div>
+</div>
+</div></div>
+</div></div>
+</div>
+<!-- ALWAYS ON -->
+<div class="always-on">
+<div class="section-header" onclick="toggleSection('always-on-body', this)">
+<h2>// Always On — Every Monday</h2>
+<span class="count">06</span>
+<span class="section-toggle">[COLLAPSE]</span>
+</div>
+<div class="section-body" id="always-on-body">
+<div class="section-body-inner">
+<div class="cards"><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // PAID MEDIA</div>
+<div class="card-title">PERUAE Measurement Matrix</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1xEYD7VSL7PVjOMAFD71g5n2tK5iCxe1Jp9KffLaxH_4/edit?gid=920897613#gid=920897613" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                      MEASUREMENT MATRIX
+                    </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // PAID MEDIA</div>
+<div class="card-title">PERLAX Measurement Matrix</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1-D4wGBrRtSx0rFijn-LV3SaPIVAma_GNq8mmEUfLk0A/edit?gid=920897613#gid=920897613" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                      MEASUREMENT MATRIX
+                    </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // PAID MEDIA</div>
+<div class="card-title">NYC Measurement Matrix</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1UlHLENOY3XNqnjbMFkYDYuvlkJXFs2X2ow88vwVUmaU/edit?gid=0#gid=0" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                      NYC MEASUREMENT MATRIX
+                    </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // CRM</div>
+<div class="card-title">VIP Concierge Tracker</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1LYnpGpOw0PFCVAqVoYFgOuy-GqonKfIM8U-Xpk6fzns/edit?gid=3773967#gid=3773967" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                      VIP CONCIERGE TRACKER
+                    </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // CRM</div>
+<div class="card-title">Message Allisha — Update VIP Concierge Tracker</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Action</div>
+<div class="detail-value">Message Allisha to prompt her to update the VIP Concierge Tracker</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">RECURRING // PROGRAMME</div>
+<div class="card-title">12 Week Reset Tracker — Message Emily &amp; Melissa</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-recurring">↻ WEEKLY</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Action</div>
+<div class="detail-value">Message Emily and Melissa on chain to update the 12 Week Reset Tracker</div>
+</div>
+</div>
+</div></div>
+</div></div>
+</div>
+</div>
+</div>
+<!-- COMPLETED -->
+<div class="done-section">
+<div class="section-header" onclick="toggleSection('completed-body', this)">
+<h2>// Completed</h2>
+<span class="count">56</span>
+<span class="section-toggle">[COLLAPSE]</span>
+</div>
+<div class="section-body" id="completed-body">
+<div class="section-body-inner">
+<div class="cards"><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-043 // OPERATIONS</div>
+<div class="card-title">Dr Paul Clayton Flights</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Find pricings and times for Paul Clayton's return flight</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-044 // OPERATIONS</div>
+<div class="card-title">LYMA Lift Sign</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Print and laminate replacement LYMA Lift sign for the small meeting room and kitchen</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-043 // OPERATIONS</div>
+<div class="card-title">Reprint LYMA Lift Sign</div>
+</div>
+<div class="card-top-right">
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Reprint LYMA Lift sign and laminate items</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-045 // CREATIVE</div>
+<div class="card-title">One-Pager for Spekk</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Create a one-pager for the EU and UK prices and assets to use for the Youth System new ads</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-042 // ANALYTICS</div>
+<div class="card-title">Swap Revenue Data from GA4 to Shopify</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">On Perlax, PerUAE, and NYC HypLoc measurement matrices, change the source of the Total Revenue value from GA4 to Shopify and add a link to the data source in the last tab</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-025 // OPERATIONS</div>
+<div class="card-title">Powder for HTC</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Check with Ola and Ops about how we're handling shipping ID2 Powder to US UGC influencers with HTC — does this include shaker, will we follow up with updated packaging once ready, etc.</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-038 // OPERATIONS</div>
+<div class="card-title">Lucy Addison Lee Collection</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">WhatsApp from Lucy to collect items this week</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-032 // PAID MEDIA</div>
+<div class="card-title">Asprey Ads</div>
+</div>
+<div class="card-top-right"><span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Get copy approved for Asprey ads on Notion</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://drive.google.com/drive/folders/1afIvaf3fzAk1vZPyGmRnBYvoxXd5nxxM?usp=drive_link" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  ASPREY ADS FOLDER
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-040 // CREATIVE</div>
+<div class="card-title">Brief Yasha to Remove NYC Elements from CTV</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Remove the QR and NYC-specific messaging from CTV ads to make suitable for YouTube campaigns, then send to Scott at Spekk</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-041 // RESEARCH</div>
+<div class="card-title">Competitor List</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Create list of competitors to send to Lily on Slack</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-037 // ANALYTICS</div>
+<div class="card-title">Dave Asprey Attributed Sales</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Go through to find sales attributed to Dave Asprey's ads for January and February</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-009 // PAID MEDIA</div>
+<div class="card-title">Build Measurement Matrix — NYC Hyper-Local Campaign</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Note</div>
+<div class="detail-value">Waiting for Nicole to confirm control ZIP codes</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/document/d/197NgelmvUH5GvtHYfHmZjvNxWyPaMgsD/edit" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  ORIGINAL BRIEF
+                </a>
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1UlHLENOY3XNqnjbMFkYDYuvlkJXFs2X2ow88vwVUmaU/edit?gid=0#gid=0" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                  MEASUREMENT MATRIX
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-024 // CREATIVE</div>
+<div class="card-title">Replacement Image for ID-1109</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Find portrait snow image to replace current</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-031 // CREATIVE</div>
+<div class="card-title">Daisy Toye Copy</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Create copy for the Daisy Toye UGC and get approved by Russ and Caroline</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-030 // CREATIVE</div>
+<div class="card-title">Tweak Copy on ID-890 and ID-999</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Tweak copy to be more New York specific</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-029 // CREATIVE</div>
+<div class="card-title">Approve NYC Ads on Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-022 // CONTENT</div>
+<div class="card-title">Select Best Clips from Asprey Podcast</div>
+</div>
+<div class="card-top-right"><span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Select 3-5 minute clips from the LYMA x Dave Asprey podcast for YouTube project</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-023 // PAID MEDIA</div>
+<div class="card-title">Check with Melissa on GT GWP</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Brief</div>
+<div class="detail-value">Speak with Melissa to see whether we need to take UK and US GlobeTrotter GWP ads down too, and inform Spekk either way</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-027 // OPERATIONS</div>
+<div class="card-title">Breakfast</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-026 // OPERATIONS</div>
+<div class="card-title">Spa Room</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-016 // CREATIVE</div>
+<div class="card-title">Add Feedback to Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">26.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-020 // OPERATIONS</div>
+<div class="card-title">HTC Shipments to Samples Log</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">26.02.2026</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1-TQFJ1AAUZVDaBq-5SbeDgblJ7y3TfGay25_5_4cSOM/edit?gid=1748889808#gid=1748889808" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                  SAMPLES LOG
+                </a>
+<a class="link-chip" href="https://docs.google.com/spreadsheets/d/1tOWqqeDuV7x_WJ34eomvorhbHZgCaU1i4OzYaMM1yQo/edit?gid=0#gid=0" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="3" x2="21" y1="9" y2="9"></line><line x1="3" x2="21" y1="15" y2="15"></line><line x1="9" x2="9" y1="3" y2="21"></line></svg>
+                  HTC ORDERS
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-021 // CREATIVE</div>
+<div class="card-title">Input Statiq Feedback</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">26.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-013 // CREATIVE</div>
+<div class="card-title">Review Statiq Updates</div>
+</div>
+<div class="card-top-right"><span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">26.02.2026</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://www.figma.com/design/29uIWWhAxx0b7J2v1p3vU9/Lyma-%E2%9C%85?node-id=10211-2&amp;t=QDMPqIfg86NbZned-0#1646938628" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="12" x2="12" y1="3" y2="21"></line><line x1="3" x2="21" y1="12" y2="12"></line></svg>
+                  FIGMA FILE
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-018 // RESEARCH</div>
+<div class="card-title">Consolidate HSA/FSA Learnings</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-006 // RESEARCH</div>
+<div class="card-title">Detailed HSA/FSA Research</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Phases</div>
+<div class="detail-value">
+<div class="subtask-list">
+<div class="subtask-item done-subtask">
+<span class="subtask-tick">✓</span>
+<span class="subtask-name done-name">1 — Meta Ad Library Search</span>
+</div>
+<div class="subtask-item">
+<span class="subtask-tick pending">○</span>
+<span class="subtask-name">2 — Google Ads</span>
+</div>
+<div class="subtask-item">
+<span class="subtask-tick pending">○</span>
+<span class="subtask-name">3 — Brand Websites</span>
+</div>
+<div class="subtask-item">
+<span class="subtask-tick pending">○</span>
+<span class="subtask-name">4 — Flex Marketplace</span>
+</div>
+<div class="subtask-item">
+<span class="subtask-tick pending">○</span>
+<span class="subtask-name">5 — Analysis Per Brand</span>
+</div>
+<div class="subtask-item">
+<span class="subtask-tick pending">○</span>
+<span class="subtask-name">6 — Other / Conclusions</span>
+</div>
+</div>
+</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Progress</div>
+<div class="detail-value" style="flex:1">
+<div class="subtask-bar">
+<div class="subtask-track"><div class="subtask-fill" style="width:100%"></div></div>
+<span class="subtask-label">06 / 06</span>
+</div>
+</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value">
+<div class="links">
+<a class="link-chip" href="https://drive.google.com/drive/folders/1WXrhAwbZvnHY2ULZjN9kX7k4KFWhM8xi?usp=drive_link" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    RESEARCH FOLDER
+                  </a>
+<a class="link-chip" href="HSA_FSA_Competitor_Research_Plan.pdf" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                    ACTION PLAN PDF
+                  </a>
+</div>
+</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-017 // CREATIVE</div>
+<div class="card-title">Send OOH to Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://drive.google.com/drive/folders/1im7GX5yt6xsl1kvEkQy72C4Zlvj2b4nW" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  NEW OOH ASSETS
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-014 // CREATIVE</div>
+<div class="card-title">Get Creative Approval on NYC Ads on Notion</div>
+</div>
+<div class="card-top-right"><span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-015 // PAID MEDIA</div>
+<div class="card-title">Get NYC URLs from Annabelle</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-012 // CREATIVE</div>
+<div class="card-title">Statiq Ads</div>
+</div>
+<div class="card-top-right"><span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+<div class="detail-row">
+<div class="detail-label">Links</div>
+<div class="detail-value"><div class="links">
+<a class="link-chip" href="https://www.figma.com/design/29uIWWhAxx0b7J2v1p3vU9/Lyma-%E2%9C%85?node-id=10047-3&amp;p=f&amp;t=38RhKwZK6DyAAnCQ-0" onclick="event.stopPropagation()" target="_blank">
+<svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 24 24"><rect height="18" rx="2" width="18" x="3" y="3"></rect><line x1="12" x2="12" y1="3" y2="21"></line><line x1="3" x2="21" y1="12" y2="12"></line></svg>
+                  FIGMA FILE
+                </a>
+</div></div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-011 // CREATIVE</div>
+<div class="card-title">Scarring Asset Copy</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div><div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-010 // CREATIVE</div>
+<div class="card-title">Brief Spekk on NYC Hyper-Local Ads</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C00 // CREATIVE</div>
+<div class="card-title">Scarring Funnel Feedback and Approval</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C01 // LOGISTICS</div>
+<div class="card-title">Courier to Kelly Cornwell</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">20.02.2026 — Addison Lee #589317</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C02 // CREATIVE</div>
+<div class="card-title">Google PMax YS Strikethrough Pricing</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C03 // OPERATIONS</div>
+<div class="card-title">Statiq to Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C04 // CREATIVE</div>
+<div class="card-title">Dr Diamond Podcast Ad</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">9 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C05 // CREATIVE</div>
+<div class="card-title">Statiq Briefing</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C06 // CREATIVE</div>
+<div class="card-title">Scarring Funnel Copy</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C07 // PAID MEDIA</div>
+<div class="card-title">HSA/FSA Ads</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">6 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C08 // PAID MEDIA</div>
+<div class="card-title">PERLAX Measurement Matrix</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">10 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C09 // PAID MEDIA</div>
+<div class="card-title">Dubai ASC Campaign</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">11 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C10 // CREATIVE</div>
+<div class="card-title">Aus Day Recap Slides</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">11 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C11 // PAID MEDIA</div>
+<div class="card-title">Splitit and Klarna Ad Copy</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">9 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C12 // PAID MEDIA</div>
+<div class="card-title">Can We See Sales by UTM for Asprey Ads</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C13 // INFLUENCER</div>
+<div class="card-title">HTC Order for Influencers</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">10 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C14 // CREATIVE</div>
+<div class="card-title">HTC Assets</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">9 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C15 // PAID MEDIA</div>
+<div class="card-title">Jenny Brief to Trello — US Google PMax</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C16 // PAID MEDIA</div>
+<div class="card-title">Jenny Brief to Trello — Further Iterations PERUAE</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C17 // PAID MEDIA</div>
+<div class="card-title">Scarring Funnel Ad Campaign</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">11 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C18 // PAID MEDIA</div>
+<div class="card-title">Lead-Gen US Ads</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">6 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C19 // PAID MEDIA</div>
+<div class="card-title">UAE Ads to Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">5 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C20 // OPERATIONS</div>
+<div class="card-title">Spa Room Setup</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">4 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C21 // CREATIVE</div>
+<div class="card-title">Brittany Allyn PRO</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">4 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C22 // OPERATIONS</div>
+<div class="card-title">UCG to Notion</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">6 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+<div class="card" onclick="toggle(this)">
+<div class="card-top">
+<div class="card-top-left">
+<div class="card-prefix">TASK-C23 // CREATIVE</div>
+<div class="card-title">Statiq Brief</div>
+</div>
+<div class="card-top-right">
+<span class="pill pill-done">✓ DONE</span>
+<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewbox="0 0 10 10"><polyline points="2,3 5,7 8,3"></polyline></svg></div>
+</div>
+</div>
+<div class="card-expand"><div class="card-expand-inner">
+<div class="card-details">
+<div class="detail-row">
+<div class="detail-label">Completed</div>
+<div class="detail-value">6 Feb 2026</div>
+</div>
+</div>
+</div></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script>
+  // ── PASSWORD ──────────────────────────────────────────────────────────────
+  // SHA-256 hash of '63240541' — never store plaintext passwords
+  const PASS_HASH = '7deefe6100f1708615b41647cb5fa394c709da4cfce63098e443dce976504a1f';
 
-    function increment() {
-      count++;
-      countEl.textContent = count;
-      localStorage.setItem("rayquazaCount", count);
-      countEl.classList.remove("flash");
-      void countEl.offsetWidth; // retrigger animation
-      countEl.classList.add("flash");
+  async function hashStr(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
 
-      if(count % 100 === 0) showSparkle(); // sparkle on every 100 encounters
-    }
+  // Sanitise input — strip all non-alphanumeric chars to prevent injection
+  function sanitise(str) {
+    return String(str).replace(/[^a-zA-Z0-9]/g, '').slice(0, 32);
+  }
 
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space" || e.code === "Enter") {
-        e.preventDefault();
-        increment();
+  const MAX_ATTEMPTS = 3;
+  const LOCKOUT_MS   = 5 * 60 * 1000; // 5 minutes
+  const SESSION_KEY  = 'lyma_auth';
+  const ATTEMPTS_KEY = 'lyma_attempts';
+  const LOCKOUT_KEY  = 'lyma_lockout';
+
+  function getAttempts()  { return parseInt(localStorage.getItem(ATTEMPTS_KEY) || '0', 10); }
+  function getLockout()   { return parseInt(localStorage.getItem(LOCKOUT_KEY)  || '0', 10); }
+  function setAttempts(n) { localStorage.setItem(ATTEMPTS_KEY, String(n)); }
+  function setLockout(t)  { localStorage.setItem(LOCKOUT_KEY, String(t)); }
+
+  function isLockedOut() {
+    const lockoutUntil = getLockout();
+    return lockoutUntil > Date.now();
+  }
+
+  function lockoutRemaining() {
+    return Math.max(0, Math.ceil((getLockout() - Date.now()) / 1000));
+  }
+
+  function showLockoutTimer() {
+    const msg  = document.getElementById('pw-lockout-msg');
+    const inp  = document.getElementById('pw-input');
+    const btn  = document.getElementById('pw-btn');
+    const att  = document.getElementById('pw-attempts');
+    inp.disabled = true;
+    btn.disabled = true;
+    att.textContent = '';
+    const tick = setInterval(() => {
+      if (!isLockedOut()) {
+        clearInterval(tick);
+        inp.disabled = false;
+        btn.disabled = false;
+        msg.textContent = '';
+        att.textContent = 'ACCESS RESTORED';
+        setTimeout(() => att.textContent = '', 2000);
+        setAttempts(0);
+        return;
       }
-    });
+      msg.textContent = '⚠ LOCKED — ' + lockoutRemaining() + 's';
+    }, 1000);
+  }
 
-    tapBtn.addEventListener("click", increment);
-  </script>
-</body>
+  function initPwScreen() {
+    // If already authenticated in this session, skip
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+      document.getElementById('pw-screen').style.display = 'none';
+      return;
+    }
+    if (isLockedOut()) showLockoutTimer();
+    const rem = MAX_ATTEMPTS - getAttempts();
+    if (rem < MAX_ATTEMPTS && !isLockedOut()) {
+      document.getElementById('pw-attempts').textContent = rem + ' ATTEMPT' + (rem===1?'':'S') + ' REMAINING';
+    }
+  }
+
+  async function checkPw() {
+    if (isLockedOut()) return;
+    const raw = document.getElementById('pw-input').value;
+    const clean = sanitise(raw);
+    document.getElementById('pw-input').value = '';
+    const err = document.getElementById('pw-error');
+    const att = document.getElementById('pw-attempts');
+
+    const hash = await hashStr(clean);
+    if (hash === PASS_HASH) {
+      sessionStorage.setItem(SESSION_KEY, '1');
+      localStorage.removeItem(ATTEMPTS_KEY);
+      localStorage.removeItem(LOCKOUT_KEY);
+      document.getElementById('pw-screen').style.display = 'none';
+    } else {
+      const attempts = getAttempts() + 1;
+      setAttempts(attempts);
+      err.classList.add('show');
+      setTimeout(() => err.classList.remove('show'), 2000);
+      if (attempts >= MAX_ATTEMPTS) {
+        setLockout(Date.now() + LOCKOUT_MS);
+        showLockoutTimer();
+      } else {
+        const rem = MAX_ATTEMPTS - attempts;
+        att.textContent = rem + ' ATTEMPT' + (rem===1?'':'S') + ' REMAINING';
+      }
+    }
+  }
+
+  initPwScreen();
+
+  document.getElementById('pw-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') checkPw();
+  });
+
+  // ── CARD TOGGLE ───────────────────────────────────────────────────────────
+  function toggle(card) { card.classList.toggle('open'); }
+
+  function toggleSection(id, header) {
+    const body = document.getElementById(id);
+    const btn = header.querySelector('.section-toggle');
+    body.classList.toggle('collapsed');
+    btn.textContent = body.classList.contains('collapsed') ? '[EXPAND]' : '[COLLAPSE]';
+  }
+
+  // ── LIVE CLOCK ────────────────────────────────────────────────────────────
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    const s = String(now.getSeconds()).padStart(2,'0');
+    const el = document.getElementById('live-time');
+    if (el) el.textContent = h + ':' + m + ':' + s;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // ── TASK COUNTER ──────────────────────────────────────────────────────────
+  let taskCounter = 46;
+
+  // ── MODAL STATE ───────────────────────────────────────────────────────────
+  let editingCard = null; // null = add mode, element = edit mode
+
+  function openModal() {
+    editingCard = null;
+    document.getElementById('modal-heading').textContent = '// Add New Task';
+    document.getElementById('modal-confirm-btn').textContent = 'Add Task';
+    resetModalFields();
+    document.getElementById('modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('m-title').focus(), 100);
+  }
+
+  function openEditModal(card, e) {
+    if (e) e.stopPropagation();
+    editingCard = card;
+    document.getElementById('modal-heading').textContent = '// Edit Task';
+    document.getElementById('modal-confirm-btn').textContent = 'Save Changes';
+
+    // Populate fields from card
+    const titleEl = card.querySelector('.card-title');
+    const prefixEl = card.querySelector('.card-prefix');
+    const briefRow = Array.from(card.querySelectorAll('.detail-row')).find(r => {
+      const lbl = r.querySelector('.detail-label');
+      return lbl && lbl.textContent.trim().toLowerCase() === 'brief';
+    });
+    const blockedRow = Array.from(card.querySelectorAll('.detail-row')).find(r => {
+      const lbl = r.querySelector('.detail-label');
+      return lbl && lbl.textContent.trim().toLowerCase().includes('blocked');
+    });
+    const linkEl = card.querySelector('.link-chip');
+
+    document.getElementById('m-title').value = titleEl ? titleEl.textContent.trim() : '';
+
+    // Parse category from prefix e.g. "TASK-001 // CREATIVE"
+    const prefix = prefixEl ? prefixEl.textContent.trim() : '';
+    const catMatch = prefix.match(/\/\/\s*(.+)$/);
+    const cat = catMatch ? catMatch[1].trim() : 'CREATIVE';
+    const catSelect = document.getElementById('m-cat');
+    for (let opt of catSelect.options) {
+      if (opt.value === cat) { catSelect.value = cat; break; }
+    }
+
+    // Current status
+    const statusSel = card.querySelector('.status-select');
+    const currentStatus = statusSel ? statusSel.value : 'todo';
+    document.getElementById('m-section').value = currentStatus;
+    document.getElementById('m-blocked-row').style.display = currentStatus === 'blocked' ? 'flex' : 'none';
+
+    document.getElementById('m-brief').value = briefRow ? briefRow.querySelector('.detail-value').textContent.trim() : '';
+    document.getElementById('m-blockedreason').value = blockedRow ? blockedRow.querySelector('.detail-value').textContent.trim() : '';
+
+    if (linkEl) {
+      document.getElementById('m-link').value = linkEl.getAttribute('href') || '';
+      document.getElementById('m-linklabel').value = linkEl.textContent.trim();
+    } else {
+      document.getElementById('m-link').value = '';
+      document.getElementById('m-linklabel').value = '';
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+    setTimeout(() => document.getElementById('m-title').focus(), 100);
+  }
+
+  function closeModal() {
+    document.getElementById('modal-overlay').classList.remove('open');
+    editingCard = null;
+    resetModalFields();
+  }
+
+  function resetModalFields() {
+    document.getElementById('m-title').value = '';
+    document.getElementById('m-brief').value = '';
+    document.getElementById('m-link').value = '';
+    document.getElementById('m-linklabel').value = '';
+    document.getElementById('m-blockedreason').value = '';
+    document.getElementById('m-cat').selectedIndex = 0;
+    document.getElementById('m-section').selectedIndex = 0;
+    document.getElementById('m-blocked-row').style.display = 'none';
+  }
+
+  document.getElementById('modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  function modalStatusChange(sel) {
+    document.getElementById('m-blocked-row').style.display = sel.value === 'blocked' ? 'flex' : 'none';
+  }
+
+  function submitModal() {
+    if (editingCard) {
+      saveEdit();
+    } else {
+      addTask();
+    }
+  }
+
+  function saveEdit() {
+    const card = editingCard;
+    const title = document.getElementById('m-title').value.trim();
+    if (!title) { document.getElementById('m-title').focus(); return; }
+
+    const cat = document.getElementById('m-cat').value;
+    const newStatus = document.getElementById('m-section').value;
+    const brief = document.getElementById('m-brief').value.trim();
+    const blockedreason = document.getElementById('m-blockedreason').value.trim();
+    const link = document.getElementById('m-link').value.trim();
+    const linklabel = document.getElementById('m-linklabel').value.trim() || 'LINK';
+
+    // Update title and prefix
+    const titleEl = card.querySelector('.card-title');
+    const prefixEl = card.querySelector('.card-prefix');
+    if (titleEl) titleEl.textContent = title;
+    if (prefixEl) {
+      const idMatch = prefixEl.textContent.match(/^(TASK-\w+|RECURRING|ALWAYS ON)/);
+      const id = idMatch ? idMatch[1] : 'TASK';
+      prefixEl.textContent = id + ' // ' + cat;
+    }
+
+    // Update brief detail row
+    let briefRow = Array.from(card.querySelectorAll('.detail-row')).find(r => {
+      const lbl = r.querySelector('.detail-label');
+      return lbl && lbl.textContent.trim().toLowerCase() === 'brief';
+    });
+    if (brief) {
+      if (briefRow) {
+        briefRow.querySelector('.detail-value').textContent = brief;
+      } else {
+        const details = card.querySelector('.card-details');
+        if (details) {
+          const row = document.createElement('div');
+          row.className = 'detail-row';
+          row.innerHTML = '<div class="detail-label">Brief</div><div class="detail-value">' + escHtml(brief) + '</div>';
+          details.insertBefore(row, details.firstChild);
+        }
+      }
+    } else if (briefRow) {
+      briefRow.remove();
+    }
+
+    // Update blocked reason
+    let blockedRow = Array.from(card.querySelectorAll('.detail-row')).find(r => {
+      const lbl = r.querySelector('.detail-label');
+      return lbl && lbl.textContent.trim().toLowerCase().includes('blocked');
+    });
+    if (newStatus === 'blocked' && blockedreason) {
+      if (blockedRow) {
+        blockedRow.querySelector('.detail-value').textContent = blockedreason;
+      } else {
+        const details = card.querySelector('.card-details');
+        if (details) {
+          const row = document.createElement('div');
+          row.className = 'detail-row';
+          row.innerHTML = '<div class="detail-label">Blocked by</div><div class="detail-value">' + escHtml(blockedreason) + '</div>';
+          details.insertBefore(row, details.firstChild);
+        }
+      }
+      // Update blocked reason textarea
+      const bri = card.querySelector('.blocked-reason-input');
+      if (bri) bri.value = blockedreason;
+    } else if (blockedRow && newStatus !== 'blocked') {
+      blockedRow.remove();
+    }
+
+    // Update link
+    let linkEl = card.querySelector('.link-chip');
+    if (link) {
+      if (linkEl) {
+        linkEl.setAttribute('href', link);
+        linkEl.childNodes[linkEl.childNodes.length - 1].textContent = linklabel;
+      } else {
+        let linksDiv = card.querySelector('.links');
+        if (!linksDiv) {
+          const details = card.querySelector('.card-details');
+          const row = document.createElement('div');
+          row.className = 'detail-row';
+          row.innerHTML = '<div class="detail-label">Links</div><div class="detail-value"><div class="links"></div></div>';
+          details.appendChild(row);
+          linksDiv = row.querySelector('.links');
+        }
+        linksDiv.insertAdjacentHTML('beforeend',
+          '<a class="link-chip" href="' + escHtml(link) + '" target="_blank" onclick="event.stopPropagation()">' +
+          '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+          escHtml(linklabel) + '</a>');
+      }
+    }
+
+    // Update status via existing handler
+    const statusSel = card.querySelector('.status-select');
+    if (statusSel) {
+      statusSel.value = newStatus;
+      setCardStatus(card, newStatus, blockedreason);
+    }
+
+    closeModal();
+  }
+
+  function addTask() {
+    const title = document.getElementById('m-title').value.trim();
+    if (!title) { document.getElementById('m-title').focus(); return; }
+
+    const cat = document.getElementById('m-cat').value;
+    const section = document.getElementById('m-section').value;
+    const brief = document.getElementById('m-brief').value.trim();
+    const blockedreason = document.getElementById('m-blockedreason').value.trim();
+    const link = document.getElementById('m-link').value.trim();
+    const linklabel = document.getElementById('m-linklabel').value.trim() || 'LINK';
+    const id = 'TASK-' + String(taskCounter).padStart(3, '0');
+    taskCounter++;
+
+    const isActive = section === 'active';
+    const isBlocked = section === 'blocked';
+    const cardClass = isBlocked ? 'card blocked-card' : 'card';
+    const pillHtml = isActive
+      ? '<span class="pill pill-active">● ACTIVE</span>'
+      : isBlocked
+      ? '<span class="pill pill-blocked">■ BLOCKED</span>'
+      : '';
+
+    let detailsHtml = '';
+    if (brief) detailsHtml += '<div class="detail-row"><div class="detail-label">Brief</div><div class="detail-value">' + escHtml(brief) + '</div></div>';
+    if (isBlocked && blockedreason) detailsHtml += '<div class="detail-row"><div class="detail-label">Blocked by</div><div class="detail-value">' + escHtml(blockedreason) + '</div></div>';
+    if (link) detailsHtml += '<div class="detail-row"><div class="detail-label">Links</div><div class="detail-value"><div class="links"><a class="link-chip" href="' + escHtml(link) + '" target="_blank" onclick="event.stopPropagation()"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' + escHtml(linklabel) + '</a></div></div></div>';
+
+    const cardHtml = '<div class="' + cardClass + '" onclick="toggle(this)">' +
+      '<div class="card-top"><div class="card-top-left">' +
+      '<div class="card-prefix">' + id + ' // ' + cat + '</div>' +
+      '<div class="card-title">' + escHtml(title) + '</div>' +
+      '</div><div class="card-top-right">' + pillHtml +
+      '<div class="expand-icon"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 10 10"><polyline points="2,3 5,7 8,3"/></svg></div>' +
+      '</div></div>' +
+      '<div class="card-expand"><div class="card-expand-inner">' +
+      '<div class="card-details">' + detailsHtml + '</div>' +
+      '</div></div></div>';
+
+    const board = document.querySelector('.board');
+    let targetSection = section === 'active' ? board.querySelector('.active') : board.querySelector('.todo');
+    if (targetSection) {
+      const cardsDiv = targetSection.querySelector('.cards');
+      cardsDiv.insertAdjacentHTML('beforeend', cardHtml);
+      const badge = targetSection.querySelector('.count');
+      if (badge) badge.textContent = String(cardsDiv.querySelectorAll(':scope > .card').length).padStart(2, '0');
+    }
+
+    closeModal();
+    // Re-init status controls for the new card
+    setTimeout(initStatusControls, 50);
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── STATUS CONTROLS ───────────────────────────────────────────────────────
+  function getCardStatus(card) {
+    const pill = card.querySelector('.pill');
+    if (!pill) return 'todo';
+    const cls = pill.className;
+    if (cls.includes('pill-done')) return 'done';
+    if (cls.includes('pill-active')) return 'active';
+    if (cls.includes('pill-blocked')) return 'blocked';
+    if (cls.includes('pill-recurring')) return 'weekly';
+    return 'todo';
+  }
+
+  function setCardStatus(card, newStatus, blockedReason) {
+    const pill = card.querySelector('.pill');
+    if (pill) {
+      const map = {
+        active:  ['pill pill-active',   '● ACTIVE'],
+        blocked: ['pill pill-blocked',  '■ BLOCKED'],
+        done:    ['pill pill-done',     '✓ DONE'],
+        weekly:  ['pill pill-recurring','↻ WEEKLY'],
+        todo:    ['pill pill-done',     '✓ DONE'],
+      };
+      const [cls, txt] = map[newStatus] || map.todo;
+      pill.className = cls; pill.textContent = txt;
+    }
+    card.classList.toggle('blocked-card', newStatus === 'blocked');
+    const brow = card.querySelector('.blocked-reason-row');
+    if (brow) brow.classList.toggle('visible', newStatus === 'blocked');
+
+    const board = document.querySelector('.board');
+    const todoSection  = board.querySelector('.todo');
+    const activeSection = board.querySelector('.active');
+    const doneSection  = board.querySelector('.done-section');
+
+    let targetCards;
+    if (newStatus === 'done')   targetCards = doneSection.querySelector('.cards');
+    else if (newStatus === 'active') targetCards = activeSection.querySelector('.cards');
+    else targetCards = todoSection.querySelector('.cards');
+
+    if (targetCards && !targetCards.contains(card)) {
+      card.remove();
+      targetCards.appendChild(card);
+      [todoSection, activeSection, doneSection].forEach(sec => {
+        if (!sec) return;
+        const cd = sec.querySelector('.cards');
+        const badge = sec.querySelector('.count');
+        if (cd && badge) badge.textContent = String(cd.querySelectorAll(':scope > .card').length).padStart(2,'0');
+      });
+    }
+  }
+
+  function initStatusControls() {
+    document.querySelectorAll('.card').forEach(card => {
+      if (card.querySelector('.status-row')) return;
+      const expand = card.querySelector('.card-expand-inner');
+      if (!expand) return;
+
+      const currentStatus = getCardStatus(card);
+      let existingBlockedReason = '';
+      card.querySelectorAll('.detail-row').forEach(row => {
+        const lbl = row.querySelector('.detail-label');
+        if (lbl && lbl.textContent.trim().toLowerCase().includes('blocked')) {
+          existingBlockedReason = row.querySelector('.detail-value')?.textContent.trim() || '';
+        }
+      });
+
+      const statusRow = document.createElement('div');
+      statusRow.className = 'status-row';
+      statusRow.innerHTML =
+        '<span class="status-label">Status</span>' +
+        '<select class="status-select" onclick="event.stopPropagation()" onchange="handleStatusChange(this)">' +
+        '<option value="todo"'   + (currentStatus==='todo'?   ' selected':'') + '>TO DO</option>' +
+        '<option value="active"' + (currentStatus==='active'? ' selected':'') + '>ACTIVE</option>' +
+        '<option value="blocked"'+ (currentStatus==='blocked'?' selected':'') + '>BLOCKED</option>' +
+        '<option value="done"'   + (currentStatus==='done'?   ' selected':'') + '>COMPLETE</option>' +
+        '<option value="weekly"' + (currentStatus==='weekly'? ' selected':'') + '>WEEKLY</option>' +
+        '</select>' +
+        '<button class="edit-btn" onclick="openEditModal(this.closest(\'.card\'), event)">✎ EDIT</button>' +
+        '<div class="blocked-reason-row' + (currentStatus==='blocked'?' visible':'') + '">' +
+        '<span class="blocked-reason-label">Blocked by</span>' +
+        '<textarea class="blocked-reason-input" placeholder="What is blocking this task?" onclick="event.stopPropagation()">' + escHtml(existingBlockedReason) + '</textarea>' +
+        '</div>';
+
+      expand.appendChild(statusRow);
+    });
+  }
+
+  function handleStatusChange(select) {
+    const card = select.closest('.card');
+    const newStatus = select.value;
+    const brow = card.querySelector('.blocked-reason-row');
+    if (brow) brow.classList.toggle('visible', newStatus === 'blocked');
+    const reason = card.querySelector('.blocked-reason-input')?.value || '';
+    setCardStatus(card, newStatus, reason);
+  }
+
+  initStatusControls();
+
+  // ── PDF VIEWER ────────────────────────────────────────────────────────────
+  function openPdf(url, label) {
+    document.getElementById('pdf-title').textContent = label || 'DOCUMENT VIEWER';
+    document.getElementById('pdf-frame').src = url;
+    document.getElementById('pdf-overlay').classList.add('open');
+  }
+  function closePdf() {
+    document.getElementById('pdf-overlay').classList.remove('open');
+    document.getElementById('pdf-frame').src = '';
+  }
+  document.getElementById('pdf-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closePdf();
+  });
+</script></script>
+
+</div></body>
 </html>
